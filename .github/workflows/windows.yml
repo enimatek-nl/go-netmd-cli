@@ -1,0 +1,39 @@
+name: Windows Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  continuous:
+    name: Continuous Deploy
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-libusb
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+
+      - uses: actions/checkout@v2
+      - name: go get
+        run: go get
+      - name: go build
+        run: go build -v -o netmd-cli
