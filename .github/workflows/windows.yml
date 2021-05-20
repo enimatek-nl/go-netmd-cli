@@ -38,3 +38,15 @@ jobs:
         run: go get
       - name: go build
         run: go build -v -o netmd-cli
+
+      - name: publish
+        uses: WebFreak001/deploy-nightly@v1.1.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: https://uploads.github.com/repos/enimatek-nl/go-netmd-cli/releases/43283885/assets{?name,label}
+          release_id: 43283885
+          asset_path: ./netmd-cli
+          asset_name: netmd-cli-windows-amd64
+          asset_content_type: application/octet-stream
+          max_releases: 1
