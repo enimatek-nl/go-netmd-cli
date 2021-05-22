@@ -21,7 +21,7 @@ jobs:
       - name: install libusb
         run: |
           sudo apt-get update
-          sudo apt-get install build-essential libudev-dev libusb-dev libusb-1.0-0-dev libusb-1.0-0 libmagickwand-dev -y
+          sudo apt-get install build-essential libudev-dev pkg-config libusb-dev libusb-1.0-0-dev libusb-1.0-0 -y
 
       - uses: actions/setup-go@v2
         with:
