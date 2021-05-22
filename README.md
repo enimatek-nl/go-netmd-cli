@@ -30,16 +30,22 @@ Options:
 
 # download
 
-Choose the platform below for which you would like to download the cli and put all files in the same directory.
+Choose the platform below for which you would like to download netmd-cli.
 
-In case **usblib-1.0** is already installed on the system you will probably not need the extra download.
+Each download is continuously build by [github actions](https://github.com/enimatek-nl/go-netmd-cli/actions), when ARM based workflows are available I will add these as well.
 
 ### windows
 
-[netmd-cli-windows-amd64.exe](https://github.com/enimatek-nl/go-netmd-cli/releases/download/builds/netmd-cli-windows-amd64.exe)
+Download Link: [ [netmd-cli-windows-amd64.exe](https://github.com/enimatek-nl/go-netmd-cli/releases/download/builds/netmd-cli-windows-amd64.exe) ]
 
-[libusb-1.0.dll](https://github.com/enimatek-nl/go-netmd-cli/releases/download/builds/libusb-1.0.dll)
+### linux
+
+Download Link: [ [netmd-cli-linux-amd64](https://github.com/enimatek-nl/go-netmd-cli/releases/download/builds/netmd-cli-linux-amd64) ]
 
 ### macos
 
-### linux
+You will need [brew](https://brew.sh) and run `brew install libusb libusb-compat`
+
+Download Link: [ [netmd-cli-macos-intel](https://github.com/enimatek-nl/go-netmd-cli/releases/download/builds/netmd-cli-macos-intel) ]
+
+

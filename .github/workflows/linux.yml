@@ -21,7 +21,7 @@ jobs:
       - name: install libusb
         run: |
           sudo apt-get update
-          sudo apt-get install libusb-1.0-0 -y
+          sudo apt-get install libusb-dev -y
 
       - uses: actions/setup-go@v2
         with:
