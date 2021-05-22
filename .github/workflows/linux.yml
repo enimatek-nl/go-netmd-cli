@@ -21,7 +21,7 @@ jobs:
       - name: install libusb
         run: |
           sudo apt update
-          sudo apt -y install build-essential pkg-config libusb-1.0-0-dev libftdi1-dev
+            sudo apt -y install build-essential udev pkg-config libusb-1.0-0-dev
 
       - uses: actions/setup-go@v2
         with:
@@ -31,7 +31,7 @@ jobs:
       - name: go get
         run: go get
       - name: go build
-        run: go build -v -ldflags '-linkmode external -extldflags -static -v' -o netmd-cli
+        run: go build -v -ldflags '"-linkmode external -extldflags="-ludev -static"' -o netmd-cli
 
       - name: publish
         uses: WebFreak001/deploy-nightly@v1.1.0
