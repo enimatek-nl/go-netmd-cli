@@ -20,8 +20,8 @@ jobs:
     steps:
       - name: install libusb
         run: |
-          apt-get update
-          apt-get install libusb-1.0-0 -y
+          sudo apt-get update
+          sudo apt-get install libusb-1.0-0 -y
 
       - uses: actions/setup-go@v2
         with:
@@ -31,7 +31,7 @@ jobs:
       - name: go get
         run: go get
       - name: go build
-        run: go build -v -o netmd-cli
+        run: go build -v -ldflags '-linkmode external -extldflags -static -v' -o netmd-cli
 
       - name: publish
         uses: WebFreak001/deploy-nightly@v1.1.0
