@@ -20,8 +20,8 @@ jobs:
     steps:
       - name: install libusb
         run: |
-          sudo apt-get update
-          sudo apt-get install build-essential libudev-dev pkg-config libusb-dev libusb-1.0-0-dev libusb-1.0-0 -y
+          sudo apt update
+          sudo apt -y install build-essential pkg-config libusb-1.0-0-dev libftdi1-dev
 
       - uses: actions/setup-go@v2
         with:
