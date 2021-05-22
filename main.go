@@ -65,6 +65,46 @@ func main() {
 	}
 
 	switch cmd {
+	case "title":
+		ptr++
+		t := ""
+		if len(os.Args) > ptr {
+			t = strings.Join(os.Args[ptr:], " ")
+		}
+		title(md, t, safe)
+	case "move":
+		ptr++
+		if len(os.Args) <= ptr {
+			log.Fatal("missing from track #")
+		}
+		from, err := cli.ToInt(os.Args[ptr])
+		if err != nil {
+			log.Fatal(err)
+		}
+		ptr++
+		if len(os.Args) <= ptr {
+			log.Fatal("missing to track #")
+		}
+		to, err := cli.ToInt(os.Args[ptr])
+		if err != nil {
+			log.Fatal(err)
+		}
+		move(md, from, to, safe)
+	case "rename":
+		ptr++
+		if len(os.Args) <= ptr {
+			log.Fatal("missing from track #")
+		}
+		trk, err := cli.ToInt(os.Args[ptr])
+		if err != nil {
+			log.Fatal(err)
+		}
+		ptr++
+		t := ""
+		if len(os.Args) > ptr {
+			t = strings.Join(os.Args[ptr:], " ")
+		}
+		rename(md, trk, t, safe)
 	case "send":
 		ptr++
 		if len(os.Args) <= ptr {
@@ -107,9 +147,12 @@ func help() {
 	fmt.Println("  netmd-cli [options] command [arguments...]")
 	fmt.Println("")
 	fmt.Println("Commands:")
-	fmt.Println("  list                List all track data on the disc.")
-	fmt.Println("  erase [number]      Erase track number from disc.")
-	fmt.Println("  send [wav] [title]  Send stereo pcm data to the disc.")
+	fmt.Println("  list                     List all track data on the disc.")
+	fmt.Println("  send [wav] [title]       Send stereo pcm data to the disc.")
+	fmt.Println("  title [title]            Rename the disc title.")
+	fmt.Println("  rename [number] [title]  Rename the track number.")
+	fmt.Println("  move [number] [to]       Move the track number around.")
+	fmt.Println("  erase [number]           Erase track number from disc.")
 	fmt.Println("Options:")
 	fmt.Println("  -v           Verbose logging output.")
 	fmt.Println("  -y           Skip confirm questions.")
@@ -123,11 +166,48 @@ func send(md *netmd.NetMD, fn, t string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = md.Send(track)
-	if err != nil {
-		log.Fatal(err)
+	c := make(chan netmd.Transfer)
+	go md.Send(track, c)
+
+	fmt.Println()
+	spinner := []string{"|", "/", "-", "\\"}
+	spinIndex := -1
+	for {
+		res, ok := <-c
+		if !ok {
+			break
+		}
+		if res.Error != nil {
+			log.Fatal(res.Error)
+		}
+		switch res.Type {
+		case netmd.TtSend:
+			i := float32(100) / float32(track.TotalBytes())
+			p := int(i * float32(res.Transferred))
+			barFill := "=>"
+			for j := 0; j < (p / 4); j++ {
+				barFill = "=" + barFill
+			}
+			for j := p / 4; j < 25; j++ {
+				barFill = barFill + " "
+			}
+			fmt.Printf("\rTransferring [%s] %d%% (%d KiB / %d KiB)", barFill, p, res.Transferred/1024, track.TotalBytes()/1024)
+		case netmd.TtTrack:
+			fmt.Println()
+			fmt.Printf("Writing title to new track #%d...\n", res.Track)
+		case netmd.TtPoll:
+			if spinIndex == -1 {
+				fmt.Println()
+			}
+			spinIndex++
+			if spinIndex >= len(spinner) {
+				spinIndex = 0
+			}
+			fmt.Printf("\r%s Waiting for NetMD to finish writing...", spinner[spinIndex])
+		}
 	}
-	fmt.Println("Track has been send.")
+
+	fmt.Println("Done.")
 }
 
 func list(md *netmd.NetMD) {
@@ -179,6 +259,42 @@ func erase(md *netmd.NetMD, trk int, safe bool) {
 			log.Fatal(err)
 		}
 		fmt.Println("Track has been erased.")
+	} else {
+		fmt.Println("Aborted.")
+	}
+}
+
+func move(md *netmd.NetMD, trk, to int, safe bool) {
+	fmt.Printf("Do you really want to move track %d to %d?\n", trk, to)
+	if !safe || (safe && cli.AskConfirm()) {
+		err := md.MoveTrack(trk-1, to-1)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Track has been moved.")
+	} else {
+		fmt.Println("Aborted.")
+	}
+}
+
+func rename(md *netmd.NetMD, trk int, t string, safe bool) {
+	fmt.Printf("Do you really want to rename track %d to '%s'?\n", trk, t)
+	if !safe || (safe && cli.AskConfirm()) {
+		err := md.SetTrackTitle(trk-1, t, false)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Track has been renamed.")
+	} else {
+		fmt.Println("Aborted.")
+	}
+}
+
+func title(md *netmd.NetMD, t string, safe bool) {
+	fmt.Printf("Do you really want to rename the disc to '%s'?\n", t)
+	if !safe || (safe && cli.AskConfirm()) {
+		md.SetDiscHeader(t)
+		fmt.Println("Disc has been renamed.")
 	} else {
 		fmt.Println("Aborted.")
 	}

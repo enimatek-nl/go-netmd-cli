@@ -1,12 +1,32 @@
 # go-netmd cli
 
-This is a simple command-line implementation of the [go-netmd-lib](https://github.com/enimatek-nl/go-netmd-lib)
-
-This is still a **WIP**.
+This is a reference implementation of the [go-netmd-lib](https://github.com/enimatek-nl/go-netmd-lib) as a command-line interface.
 
 # usage
+`> netmd-cli help`
+```bash
+netmd-cli NetMD command line interface.
 
-`netmd-cli help`
+Author:
+  github.com/enimatek-nl
+Version:
+	0.0.1b
+Usage:
+  netmd-cli [options] command [arguments...]
+
+Commands:
+  list                     List all track data on the disc.
+  send [wav] [title]       Send stereo pcm data to the disc.
+  title [title]            Rename the disc title.
+  rename [number] [title]  Rename the track number.
+  move [number] [to]       Move the track number around.
+  erase [number]           Erase track number from disc.
+Options:
+  -v           Verbose logging output.
+  -y           Skip confirm questions.
+  -i [index]   Set the NetMD usb device index when multiple
+               devices are connected. [default: 0]
+```
 
 # download
 
