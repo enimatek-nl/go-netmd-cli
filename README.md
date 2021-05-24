@@ -51,7 +51,7 @@ Options:
 You can send raw PCM data in a WAV-container to the NetMD. This will be encoded to ATRAC on the device using the chip on the unit (eg. using Type-R etc.).
 You will need to prepare your source (mp3, aac, flac etc.) the WAV yourself like so:
 ```shell
-ffmpeg -i mytrack.flac -ac 2 -ar 44100 -f s16be mytrack.wav
+ffmpeg -i mytrack.flac -f wav -ar 44100 -ac 2 mytrack.wav
 ```
 
 # Send ATRAC3 (LP2)
