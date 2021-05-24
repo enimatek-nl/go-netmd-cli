@@ -162,14 +162,14 @@ func help() {
 }
 
 func send(md *netmd.NetMD, fn, t string) {
-	track, err := md.NewTrack(t, fn, netmd.WfPCM, netmd.DfStereoSP)
+	track, err := md.NewTrack(t, fn)
 	if err != nil {
 		log.Fatal(err)
 	}
 	c := make(chan netmd.Transfer)
 	go md.Send(track, c)
 
-	fmt.Println()
+	fmt.Println("")
 	spinner := []string{"|", "/", "-", "\\"}
 	spinIndex := -1
 	for {

@@ -21,7 +21,7 @@ jobs:
       - name: install libusb
         run: |
           sudo apt update
-            sudo apt -y install build-essential udev pkg-config libusb-1.0-0-dev
+          sudo apt -y install build-essential udev pkg-config libusb-1.0-0-dev
 
       - uses: actions/setup-go@v2
         with:

@@ -2,3 +2,4 @@
 *.iml
 *.wav
 **/.DS_Store
+*.aea
