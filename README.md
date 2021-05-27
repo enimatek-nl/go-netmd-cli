@@ -25,12 +25,6 @@ Download Link: [ [netmd-cli-macos-intel](https://github.com/enimatek-nl/go-netmd
 # Usage
 `> netmd-cli help`
 ```shell
-netmd-cli NetMD command line interface.
-
-Author:
-  github.com/enimatek-nl
-Version:
-	0.0.1b
 Usage:
   netmd-cli [options] command [arguments...]
 
@@ -42,19 +36,26 @@ Commands:
   move [number] [to]       Move the track number around.
   erase [number]           Erase track number from disc.
 Options:
-  -v           Verbose logging output.
-  -y           Skip confirm questions.
-  -i [index]   Set the NetMD usb device index when multiple
-               devices are connected. [default: 0]
+  -v             Verbose logging output.
+  -y             Skip confirm questions.
+  -d [encoding]  Encoding on disk lp2, lp4 or sp (default: sp)
+                 lp-modes known to work only with Sharp NetMD
+  -i [index]     Set the NetMD usb device index when multiple
+                 devices are connected. [default: 0]
 ```
-# Convert PCM to ATRAC SP
-You can send raw PCM data in a WAV-container to the NetMD. This will be encoded to ATRAC on the device using the chip on the unit (eg. using Type-R etc.).
-You will need to prepare your source (mp3, aac, flac etc.) the WAV yourself like so:
+# Convert to PCM
+You can send raw PCM data in a WAV-container to the NetMD by default encoded in ATRAC (SP) on the device using the chip on the unit.
+
+If you own a Sharp NetMD (IM-DR410/420 confirmed) it's possible to use the `-d lp2` or `-d lp4` flag to save the PCM as ATRAC3 on the disc.
+
+I don't know exactly which models support this (yet) but if you hear only silence after the transfer was completed you device does not support ATRAC3 through NetMD (USB). You could always use the solution mentioned below to encode the PCM to ATRAC3 first before transfer.
+
+In each case you will need to prepare your source (mp3, aac, flac etc.) the WAV yourself like so:
 ```shell
 ffmpeg -i mytrack.flac -f wav -ar 44100 -ac 2 mytrack.wav
 ```
 
-# Send ATRAC3 (LP2)
+# Send Encoded ATRAC3 Directly To NetMD
 It's possible to send LP2 tracks to the NetMD. But you will need to create them yourself on the host machine. For this you can use [atracdenc](https://github.com/dcherednik/atracdenc) created by Daniil Cherednik.
 You will need to put the ATRAC3 encoded track into a WAV-container. For all these steps it's recommended to use [ffmpeg](https://ffmpeg.org).
 

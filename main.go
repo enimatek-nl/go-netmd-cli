@@ -24,6 +24,7 @@ func main() {
 	debug := false
 	safe := true
 	index := 0
+	enc := netmd.DfStereoSP
 
 	// check options
 	for ; ptr < len(os.Args); ptr++ {
@@ -45,6 +46,20 @@ func main() {
 					log.Fatal(err)
 				}
 				index = i
+			}
+			if strings.HasSuffix(a, "d") {
+				ptr++
+				if len(os.Args) <= ptr {
+					log.Fatal("missing encoder (sp, lp2, lp4)")
+				}
+				switch os.Args[ptr] {
+				case "sp":
+					enc = netmd.DfStereoSP
+				case "lp4":
+					enc = netmd.DfLP4
+				case "lp2":
+					enc = netmd.DfLP2
+				}
 			}
 		} else {
 			break
@@ -116,7 +131,7 @@ func main() {
 		if len(os.Args) > ptr {
 			t = strings.Join(os.Args[ptr:], " ")
 		}
-		send(md, fn, t)
+		send(md, enc, fn, t)
 	case "erase":
 		ptr++
 		if len(os.Args) <= ptr {
@@ -154,15 +169,18 @@ func help() {
 	fmt.Println("  move [number] [to]       Move the track number around.")
 	fmt.Println("  erase [number]           Erase track number from disc.")
 	fmt.Println("Options:")
-	fmt.Println("  -v           Verbose logging output.")
-	fmt.Println("  -y           Skip confirm questions.")
-	fmt.Println("  -i [index]   Set the NetMD usb device index when multiple")
-	fmt.Println("               devices are connected. [default: 0]")
+	fmt.Println("  -v             Verbose logging output.")
+	fmt.Println("  -y             Skip confirm questions.")
+	fmt.Println("  -d [encoding]  Encoding on disk lp2, lp4 or sp (default: sp)")
+	fmt.Println("                 lp-modes known to work only with Sharp NetMD")
+	fmt.Println("  -i [index]     Set the NetMD usb device index when multiple")
+	fmt.Println("                 devices are connected. [default: 0]")
 	fmt.Println("")
 }
 
-func send(md *netmd.NetMD, fn, t string) {
+func send(md *netmd.NetMD, enc netmd.DiscFormat, fn, t string) {
 	track, err := md.NewTrack(t, fn)
+	track.DiscFormat = enc
 	if err != nil {
 		log.Fatal(err)
 	}
