@@ -20,6 +20,8 @@ github.com/enimatek-nl/go-netmd-lib v0.0.0-20210527141908-ded0fbb44761 h1:RS9dqF
 github.com/enimatek-nl/go-netmd-lib v0.0.0-20210527141908-ded0fbb44761/go.mod h1:2fUll/GAQdbEkqyx18ywyNlpb1i40DLjQia/uEJUvYM=
 github.com/enimatek-nl/go-netmd-lib v0.0.0-20210603093714-c755ff20b2de h1:pe/hcTYv10qJvKkCufj3oYGZOo78/LlFm/VxcZh3oD0=
 github.com/enimatek-nl/go-netmd-lib v0.0.0-20210603093714-c755ff20b2de/go.mod h1:2fUll/GAQdbEkqyx18ywyNlpb1i40DLjQia/uEJUvYM=
+github.com/enimatek-nl/go-netmd-lib v0.0.0-20210603111106-778b064428d8 h1:7lHCHUetAb2xVehOBLWmtny4H5KV5DJchrv1xZJEtL0=
+github.com/enimatek-nl/go-netmd-lib v0.0.0-20210603111106-778b064428d8/go.mod h1:2fUll/GAQdbEkqyx18ywyNlpb1i40DLjQia/uEJUvYM=
 github.com/gdamore/encoding v1.0.0 h1:+7OoQ1Bc6eTm5niUzBa0Ctsh6JbMW6Ra+YNuAtDBdko=
 github.com/gdamore/encoding v1.0.0/go.mod h1:alR0ol34c49FCSBLjhosxzcPHQbf2trDkoo5dl+VrEg=
 github.com/gdamore/tcell/v2 v2.0.0 h1:GRWG8aLfWAlekj9Q6W29bVvkHENc6hp79XOqG4AWDOs=
