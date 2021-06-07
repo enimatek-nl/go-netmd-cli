@@ -47,21 +47,33 @@ Options:
   -i [index]     Set the NetMD usb device index when multiple
                  devices are connected. [default: 0]
 ```
-# Convert to PCM
+# Record PCM Through NetMD
 You can send raw PCM data in a WAV-container to the NetMD by default encoded in ATRAC (SP) on the device using the chip on the unit.
 
-If you own a Sharp NetMD (IM-DR410/420 confirmed) it's possible to use the `-d lp2` or `-d lp4` flag to save the PCM as ATRAC3 on the disc.
+If you own a one of the units tested positive below you can use the `-d lp2` or `-d lp4` flag to save the PCM as ATRAC3 on the disc.
 
-I don't know exactly which models support this (yet) but if you hear only silence after the transfer was completed you device does not support ATRAC3 through NetMD (USB). You could always use the solution mentioned below to encode the PCM to ATRAC3 first before transfer.
+|Brand |Type |LP2/LP4 |
+--- | --- | ---
+|Sharp |IM-DR410 |✅ |
+|Sharp |IM-DR420 |✅ |
+|Sony |MDS-JB980 |✅ |
+|Sony |MDS-JE780 |✅ |
+|Sony |MZ-N710 |❌ |
+|Sony |MZ-RH910 |❌ |
+|Sony |MZ-NH600 |❌ |
+
+The list is not yet complete, so if your device is not listed and if you hear only silence after the transfer was completed you device does not support ATRAC3 through NetMD (USB). You could always use the solution mentioned below to encode the PCM to ATRAC3 first before transfer.
 
 In each case you will need to prepare your source (mp3, aac, flac etc.) the WAV yourself like so:
 ```shell
 ffmpeg -i mytrack.flac -f wav -ar 44100 -ac 2 mytrack.wav
+netmd-cli send mytrack.wav
 ```
+It's recommended to use [ffmpeg](https://ffmpeg.org).
 
-# Send Encoded ATRAC3 Directly To NetMD
-It's possible to send LP2 tracks to the NetMD. But you will need to create them yourself on the host machine. For this you can use [atracdenc](https://github.com/dcherednik/atracdenc) created by Daniil Cherednik.
-You will need to put the ATRAC3 encoded track into a WAV-container. For all these steps it's recommended to use [ffmpeg](https://ffmpeg.org).
+# Use LP2 Without NetMD Encoding Support
+You will need to create the LP2 files yourself on the host machine.
+For this you can use [atracdenc](https://github.com/dcherednik/atracdenc) created by Daniil Cherednik and put the LP2 encoded track into a WAV-container.
 
 ### example
 First convert your mp3, flac etc. into a stereo wav file:
@@ -72,7 +84,11 @@ Now encode the wav into an ATRAC3 file with a bitrate of 128 for LP2:
 ```shell
 atracdenc -e atrac3 -i out.wav -o out.aea --bitrate 128
 ```
-Last step is putting the AEA file into a WAV container like so:
+Put the AEA file into a WAV container like so:
 ```shell
 ffmpeg -i out.aea -f wav -c:a copy mytrack_lp2.wav
+```
+And send the wav to the NetMD:
+```shell
+netmd-cli send mytrack_lp2.wav
 ```
