@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/enimatek-nl/go-netmd-cli/cli"
 	"github.com/enimatek-nl/go-netmd-lib"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -41,7 +41,7 @@ func main() {
 				if len(os.Args) <= ptr {
 					log.Fatal("missing index #")
 				}
-				i, err := cli.ToInt(os.Args[ptr])
+				i, err := ToInt(os.Args[ptr])
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -92,7 +92,7 @@ func main() {
 		if len(os.Args) <= ptr {
 			log.Fatal("missing from track #")
 		}
-		from, err := cli.ToInt(os.Args[ptr])
+		from, err := ToInt(os.Args[ptr])
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -100,7 +100,7 @@ func main() {
 		if len(os.Args) <= ptr {
 			log.Fatal("missing to track #")
 		}
-		to, err := cli.ToInt(os.Args[ptr])
+		to, err := ToInt(os.Args[ptr])
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -110,7 +110,7 @@ func main() {
 		if len(os.Args) <= ptr {
 			log.Fatal("missing from track #")
 		}
-		trk, err := cli.ToInt(os.Args[ptr])
+		trk, err := ToInt(os.Args[ptr])
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -137,11 +137,36 @@ func main() {
 		if len(os.Args) <= ptr {
 			log.Fatal("missing track #")
 		}
-		trk, err := cli.ToInt(os.Args[ptr])
+		trk, err := ToInt(os.Args[ptr])
 		if err != nil {
 			log.Fatal(err)
 		}
 		erase(md, trk, safe)
+	case "degroup":
+		ptr++
+		if len(os.Args) <= ptr {
+			log.Fatal("missing track #")
+		}
+		trk, err := ToInt(os.Args[ptr])
+		if err != nil {
+			log.Fatal(err)
+		}
+		degroup(md, trk, safe)
+	case "group":
+		ptr++
+		if len(os.Args) <= ptr {
+			log.Fatal("missing to track #")
+		}
+		trk, err := ToInt(os.Args[ptr])
+		if err != nil {
+			log.Fatal(err)
+		}
+		ptr++
+		t := ""
+		if len(os.Args) > ptr {
+			t = strings.Join(os.Args[ptr:], " ")
+		}
+		group(md, trk, t, safe)
 	case "list":
 		list(md)
 	default: // help
@@ -168,6 +193,10 @@ func help() {
 	fmt.Println("  rename [number] [title]  Rename the track number.")
 	fmt.Println("  move [number] [to]       Move the track number around.")
 	fmt.Println("  erase [number]           Erase track number from disc.")
+	fmt.Println("  group [to] [title]       Put tracks ungrouped up to track number")
+	fmt.Println("                           into a group by the name title.")
+	fmt.Println("  degroup [number]         De-group including all tracks of the")
+	fmt.Println("                           group that are part of the track number.")
 	fmt.Println("Options:")
 	fmt.Println("  -v             Verbose logging output.")
 	fmt.Println("  -y             Skip confirm questions.")
@@ -231,32 +260,62 @@ func send(md *netmd.NetMD, enc netmd.DiscFormat, fn, t string) {
 func list(md *netmd.NetMD) {
 	fmt.Println("")
 	_, total, available, _ := md.RequestDiscCapacity()
-	fmt.Printf("Disc Capacity is %s Available of %s\n", cli.ToDateString(available), cli.ToDateString(total))
+	fmt.Printf("Disc has %s Available of %s\n", ToDateString(available), ToDateString(total))
+
 	discTitle, _ := md.RequestDiscHeader()
 	fmt.Printf("RAW Disc Header: %s\n", discTitle)
+
+	root := netmd.NewRoot(discTitle)
 	fmt.Println("")
-	fmt.Println("Tracks:")
+	fmt.Printf("💿 %s\n", root.Title)
 	cnt, err := md.RequestTrackCount()
 	if err != nil {
 		log.Fatal(err)
 	}
 	var totalDuration uint64
+	var group *netmd.Group
 	for nr := 0; nr < cnt; nr++ {
+
+		_grp := root.SearchGroup(nr)
+		if _grp != group {
+			group = _grp
+			if group != nil {
+				fmt.Printf(" 📁 %s/\n", group.Title)
+			}
+		}
+
+		if group != nil {
+			fmt.Printf(" ")
+		}
+		fmt.Printf(" 🎵 %d.", nr+1)
+
 		title, _ := md.RequestTrackTitle(nr)
 		duration, _ := md.RequestTrackLength(nr)
-		totalDuration += duration
+		fmt.Printf(" %s %s  ", ToDateString(duration), title)
+
+		flag, _ := md.RequestTrackFlag(nr)
+		switch flag {
+		case netmd.TrackProtected:
+			fmt.Print("🔒")
+		case netmd.TrackUnprotected:
+			fmt.Print("🔓")
+		}
+
 		enc, _ := md.RequestTrackEncoding(nr)
-		senc := "SP"
 		switch enc {
 		case netmd.EncLP2:
-			senc = "LP2"
+			fmt.Print("LP2")
 		case netmd.EncLP4:
-			senc = "LP4"
+			fmt.Print("LP4")
+		case netmd.EncSP:
+			fmt.Print("SP")
 		}
-		fmt.Printf("  %d. %s [%s] %s\n", nr+1, title, cli.ToDateString(duration), senc)
+
+		fmt.Print("\n")
+		totalDuration += duration
 	}
 	fmt.Println("")
-	fmt.Printf("  Total Duration: %s\n", cli.ToDateString(totalDuration))
+	fmt.Printf(" Total Duration: %s\n", ToDateString(totalDuration))
 	fmt.Println("")
 }
 
@@ -270,8 +329,8 @@ func erase(md *netmd.NetMD, trk int, safe bool) {
 		return
 	}
 	title, _ := md.RequestTrackTitle(trk - 1)
-	fmt.Printf("Do you really want to erase track %d - %s?\n", trk, title)
-	if !safe || (safe && cli.AskConfirm()) {
+
+	if !safe || (safe && AskConfirm(fmt.Sprintf("Do you really want to erase track %d - %s?", trk, title))) {
 		err := md.EraseTrack(trk - 1)
 		if err != nil {
 			log.Fatal(err)
@@ -283,8 +342,7 @@ func erase(md *netmd.NetMD, trk int, safe bool) {
 }
 
 func move(md *netmd.NetMD, trk, to int, safe bool) {
-	fmt.Printf("Do you really want to move track %d to %d?\n", trk, to)
-	if !safe || (safe && cli.AskConfirm()) {
+	if !safe || (safe && AskConfirm(fmt.Sprintf("Do you really want to move track %d to %d?", trk, to))) {
 		err := md.MoveTrack(trk-1, to-1)
 		if err != nil {
 			log.Fatal(err)
@@ -296,8 +354,7 @@ func move(md *netmd.NetMD, trk, to int, safe bool) {
 }
 
 func rename(md *netmd.NetMD, trk int, t string, safe bool) {
-	fmt.Printf("Do you really want to rename track %d to '%s'?\n", trk, t)
-	if !safe || (safe && cli.AskConfirm()) {
+	if !safe || (safe && AskConfirm(fmt.Sprintf("Do you really want to rename track %d to '%s'?", trk, t))) {
 		err := md.SetTrackTitle(trk-1, t, false)
 		if err != nil {
 			log.Fatal(err)
@@ -309,11 +366,109 @@ func rename(md *netmd.NetMD, trk int, t string, safe bool) {
 }
 
 func title(md *netmd.NetMD, t string, safe bool) {
-	fmt.Printf("Do you really want to rename the disc to '%s'?\n", t)
-	if !safe || (safe && cli.AskConfirm()) {
-		md.SetDiscHeader(t)
-		fmt.Println("Disc has been renamed.")
+	if !safe || (safe && AskConfirm(fmt.Sprintf("Do you really want to rename the disc to '%s'?", t))) {
+		d, err := md.RequestDiscHeader()
+		if err == nil {
+			r := netmd.NewRoot(d)
+			r.Title = t
+			err := md.SetDiscHeader(r.ToString())
+			if err == nil {
+				fmt.Println("Disc has been renamed.")
+				return
+			}
+		}
+	}
+	fmt.Println("Aborted.")
+}
+
+func degroup(md *netmd.NetMD, trk int, safe bool) {
+	d, _ := md.RequestDiscHeader()
+	r := netmd.NewRoot(d)
+	grp := r.SearchGroup(trk - 1)
+	if grp != nil {
+		if !safe || (safe && AskConfirm(fmt.Sprintf("Do you really want to degroup all tracks in group '%s'?", grp.Title))) {
+			n := make([]*netmd.Group, 0)
+			for _, g := range r.Groups {
+				if g != grp {
+					n = append(n, g)
+				}
+			}
+			r.Groups = n
+			err := md.SetDiscHeader(r.ToString())
+			if err == nil {
+				fmt.Println("Group has been removed.")
+				return
+			}
+		}
+	}
+	fmt.Println("Aborted.")
+}
+
+func group(md *netmd.NetMD, to int, t string, safe bool) {
+	if !safe || (safe && AskConfirm(fmt.Sprintf("Do you really want to group ungrouped tracks up to track %d?", to))) {
+		cnt, err := md.RequestTrackCount()
+		if to > cnt {
+			fmt.Println("not enough tracks")
+			return
+		}
+		d, err := md.RequestDiscHeader()
+		if err == nil {
+			r := netmd.NewRoot(d)
+			s := 0
+			grp := r.SearchGroup(s)
+			for grp != nil {
+				s++
+				grp = r.SearchGroup(s)
+			}
+			if s > to-1 {
+				fmt.Printf("no tracks before %d that are ungrouped\n", to)
+				return
+			}
+			r.AddGroup(t, s+1, to)
+			err := md.SetDiscHeader(r.ToString())
+			if err == nil {
+				fmt.Println("Group has been created.")
+				return
+			}
+		}
+	}
+	fmt.Println("Aborted.")
+}
+
+func ToDateString(s uint64) string {
+	hours := s / 3600
+	minutes := (s - (3600 * hours)) / 60
+	seconds := s - (3600 * hours) - (minutes * 60)
+	if hours != 0 {
+		return fmt.Sprintf("\u001B[33m%02dh %02dm %02ds\u001B[0m", hours, minutes, seconds)
 	} else {
-		fmt.Println("Aborted.")
+		return fmt.Sprintf("\u001B[33m%02dm %02ds\u001B[0m", minutes, seconds)
+	}
+}
+
+func ToInt(s string) (int, error) {
+	i, err := strconv.ParseInt(s, 10, 8)
+	if err != nil {
+		return -1, err
+	}
+	return int(i), nil
+}
+
+func AskConfirm(q string) bool {
+	var response string
+
+	fmt.Printf("%s (y/n):", q)
+	_, err := fmt.Scanln(&response)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	switch strings.ToLower(response) {
+	case "y", "yes":
+		return true
+	case "n", "no":
+		return false
+	default:
+		return AskConfirm(fmt.Sprintf("Please type (y)es or (n)o and then press enter"))
 	}
 }

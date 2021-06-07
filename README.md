@@ -35,6 +35,10 @@ Commands:
   rename [number] [title]  Rename the track number.
   move [number] [to]       Move the track number around.
   erase [number]           Erase track number from disc.
+  group [to] [title]       Put tracks ungrouped up to track number
+                           into a group by the name title.
+  degroup [number]         De-group including all tracks of the
+                           group that are part of the track number.
 Options:
   -v             Verbose logging output.
   -y             Skip confirm questions.
