@@ -8,19 +8,12 @@ Choose the platform below for which you would like to download netmd-cli.
 
 Each download is continuously build by [github actions](https://github.com/enimatek-nl/go-netmd-cli/actions), when ARM based workflows are available I will add these as well.
 
-### Windows
-
-Download Link: [ [netmd-cli-windows-amd64.exe](https://github.com/enimatek-nl/go-netmd-cli/releases/download/builds/netmd-cli-windows-amd64.exe) ]
-
-### Linux
-
-Download Link: [ [netmd-cli-linux-amd64](https://github.com/enimatek-nl/go-netmd-cli/releases/download/builds/netmd-cli-linux-amd64) ]
-
-### macOS
-
-You will need [brew](https://brew.sh) and run `brew install libusb libusb-compat`
-
-Download Link: [ [netmd-cli-macos-intel](https://github.com/enimatek-nl/go-netmd-cli/releases/download/builds/netmd-cli-macos-intel) ]
+|Platform |Arch |Link |
+--- | --- | ---
+|Windows |amd64 |[netmd-cli-windows-amd64.exe](https://github.com/enimatek-nl/go-netmd-cli/releases/download/builds/netmd-cli-windows-amd64.exe) |
+|Linux |amd64 |[netmd-cli-linux-amd64](https://github.com/enimatek-nl/go-netmd-cli/releases/download/builds/netmd-cli-linux-amd64)
+|macOs _*_ |intel |[netmd-cli-macos-intel](https://github.com/enimatek-nl/go-netmd-cli/releases/download/builds/netmd-cli-macos-intel)
+* For macOS you will need [brew](https://brew.sh) and run `brew install libusb`
 
 # Usage
 `> netmd-cli help`
