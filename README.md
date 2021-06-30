@@ -52,6 +52,7 @@ If you own a one of the units tested positive below you can use the `-d lp2` or 
 |Sony |MDS-JB980 |✅ |
 |Sony |MDS-JE780 |✅ |
 |Sony |MZ-N710 |❌ |
+|Sony |MZ-N510 |❌ |
 |Sony |MZ-RH910 |❌ |
 |Sony |MZ-NH600 |❌ |
 
