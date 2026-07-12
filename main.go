@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/enimatek-nl/go-netmd-lib"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"dev.vaulteq.com/enimatek/go-netmd-lib"
 )
 
 const (
@@ -209,10 +210,10 @@ func help() {
 
 func send(md *netmd.NetMD, enc netmd.DiscFormat, fn, t string) {
 	track, err := md.NewTrack(t, fn)
-	track.DiscFormat = enc
 	if err != nil {
 		log.Fatal(err)
 	}
+	track.DiscFormat = enc
 	c := make(chan netmd.Transfer)
 	go md.Send(track, c)
 
@@ -368,17 +369,19 @@ func rename(md *netmd.NetMD, trk int, t string, safe bool) {
 func title(md *netmd.NetMD, t string, safe bool) {
 	if !safe || (safe && AskConfirm(fmt.Sprintf("Do you really want to rename the disc to '%s'?", t))) {
 		d, err := md.RequestDiscHeader()
-		if err == nil {
-			r := netmd.NewRoot(d)
-			r.Title = t
-			err := md.SetDiscHeader(r.ToString())
-			if err == nil {
-				fmt.Println("Disc has been renamed.")
-				return
-			}
+		if err != nil {
+			log.Fatal(err)
 		}
+		r := netmd.NewRoot(d)
+		r.Title = t
+		err = md.SetDiscHeader(r.ToString())
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Disc has been renamed.")
+	} else {
+		fmt.Println("Aborted.")
 	}
-	fmt.Println("Aborted.")
 }
 
 func degroup(md *netmd.NetMD, trk int, safe bool) {
@@ -395,10 +398,11 @@ func degroup(md *netmd.NetMD, trk int, safe bool) {
 			}
 			r.Groups = n
 			err := md.SetDiscHeader(r.ToString())
-			if err == nil {
-				fmt.Println("Group has been removed.")
-				return
+			if err != nil {
+				log.Fatal(err)
 			}
+			fmt.Println("Group has been removed.")
+			return
 		}
 	}
 	fmt.Println("Aborted.")
@@ -407,32 +411,37 @@ func degroup(md *netmd.NetMD, trk int, safe bool) {
 func group(md *netmd.NetMD, to int, t string, safe bool) {
 	if !safe || (safe && AskConfirm(fmt.Sprintf("Do you really want to group ungrouped tracks up to track %d?", to))) {
 		cnt, err := md.RequestTrackCount()
+		if err != nil {
+			log.Fatal(err)
+		}
 		if to > cnt {
 			fmt.Println("not enough tracks")
 			return
 		}
 		d, err := md.RequestDiscHeader()
-		if err == nil {
-			r := netmd.NewRoot(d)
-			s := 0
-			grp := r.SearchGroup(s)
-			for grp != nil {
-				s++
-				grp = r.SearchGroup(s)
-			}
-			if s > to-1 {
-				fmt.Printf("no tracks before %d that are ungrouped\n", to)
-				return
-			}
-			r.AddGroup(t, s+1, to)
-			err := md.SetDiscHeader(r.ToString())
-			if err == nil {
-				fmt.Println("Group has been created.")
-				return
-			}
+		if err != nil {
+			log.Fatal(err)
 		}
+		r := netmd.NewRoot(d)
+		s := 0
+		grp := r.SearchGroup(s)
+		for grp != nil {
+			s++
+			grp = r.SearchGroup(s)
+		}
+		if s > to-1 {
+			fmt.Printf("no tracks before %d that are ungrouped\n", to)
+			return
+		}
+		r.AddGroup(t, s+1, to)
+		err = md.SetDiscHeader(r.ToString())
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Group has been created.")
+	} else {
+		fmt.Println("Aborted.")
 	}
-	fmt.Println("Aborted.")
 }
 
 func ToDateString(s uint64) string {
