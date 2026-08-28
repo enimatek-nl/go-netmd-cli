@@ -19,13 +19,25 @@ jobs:
         run: |
           go env -w GOPRIVATE=dev.vaulteq.com
           git config --global url."https://x-access-token:${{ secrets.DEV_VAULTEQ_TOKEN }}@dev.vaulteq.com/".insteadOf "https://dev.vaulteq.com/"
-      # PKG_CONFIG_PATH is cleared so cgo links the macOS SDK's libusb
-      # (/usr/lib/libusb-1.0.tbd, available for both archs) instead of
-      # the arm64-only Homebrew build.
+      - name: Build universal static libusb
+        run: |
+          set -e
+          curl -sL https://github.com/libusb/libusb/releases/download/v1.0.30/libusb-1.0.30.tar.bz2 -o libusb.tar.bz2
+          tar xjf libusb.tar.bz2
+          cd libusb-1.0.30
+          export CFLAGS="-arch arm64 -arch x86_64"
+          export LDFLAGS="-arch arm64 -arch x86_64"
+          ./configure --prefix="$PWD/install" --disable-shared --enable-static
+          make -j"$(sysctl -n hw.ncpu)"
+          make install
+          lipo -info install/lib/libusb-1.0.a
+      # PKG_CONFIG_PATH/LIBDIR point at our universal static lib so the
+      # Homebrew (arm64-only) libusb is never picked up.
+      # CGO_LDFLAGS adds libusb's private deps (from .pc Libs.private).
       - name: Build arm64
-        run: env PKG_CONFIG_PATH= CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o bin/go-netmd-cli-darwin-arm64 .
+        run: PKG_CONFIG_PATH="$PWD/libusb-1.0.30/install/lib/pkgconfig" PKG_CONFIG_LIBDIR="$PWD/libusb-1.0.30/install/lib/pkgconfig" CGO_ENABLED=1 CGO_LDFLAGS="-framework IOKit -framework CoreFoundation -framework Security" GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o bin/go-netmd-cli-darwin-arm64 .
       - name: Build amd64
-        run: env PKG_CONFIG_PATH= CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o bin/go-netmd-cli-darwin-amd64 .
+        run: PKG_CONFIG_PATH="$PWD/libusb-1.0.30/install/lib/pkgconfig" PKG_CONFIG_LIBDIR="$PWD/libusb-1.0.30/install/lib/pkgconfig" CGO_ENABLED=1 CGO_LDFLAGS="-framework IOKit -framework CoreFoundation -framework Security" GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o bin/go-netmd-cli-darwin-amd64 .
       - name: Create universal binary
         run: lipo -create bin/go-netmd-cli-darwin-arm64 bin/go-netmd-cli-darwin-amd64 -output bin/go-netmd-cli_darwin_universal
       - uses: actions/upload-artifact@v4
@@ -63,17 +75,18 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Install mingw cross toolchain + autotools
+      - name: Install mingw cross toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget mingw-w64 automake libtool pkg-config
+          sudo apt-get install -y wget mingw-w64
       - name: Build static libusb for mingw
         run: |
           set -e
           wget -q https://github.com/libusb/libusb/releases/download/v1.0.30/libusb-1.0.30.tar.bz2
           tar xjf libusb-1.0.30.tar.bz2
           cd libusb-1.0.30
-          ./bootstrap.sh --host=x86_64-w64-mingw32 --prefix="$PWD/install" --disable-shared --enable-static
+          # release tarball ships a pre-generated configure (no bootstrap.sh)
+          ./configure --host=x86_64-w64-mingw32 --prefix="$PWD/install" --disable-shared --enable-static
           make -j"$(nproc)"
           make install
       - name: Configure access to private modules
