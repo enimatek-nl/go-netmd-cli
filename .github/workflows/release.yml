@@ -19,10 +19,13 @@ jobs:
         run: |
           go env -w GOPRIVATE=dev.vaulteq.com
           git config --global url."https://x-access-token:${{ secrets.DEV_VAULTEQ_TOKEN }}@dev.vaulteq.com/".insteadOf "https://dev.vaulteq.com/"
+      # PKG_CONFIG_PATH is cleared so cgo links the macOS SDK's libusb
+      # (/usr/lib/libusb-1.0.tbd, available for both archs) instead of
+      # the arm64-only Homebrew build.
       - name: Build arm64
-        run: CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o bin/go-netmd-cli-darwin-arm64 .
+        run: env PKG_CONFIG_PATH= CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o bin/go-netmd-cli-darwin-arm64 .
       - name: Build amd64
-        run: CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o bin/go-netmd-cli-darwin-amd64 .
+        run: env PKG_CONFIG_PATH= CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o bin/go-netmd-cli-darwin-amd64 .
       - name: Create universal binary
         run: lipo -create bin/go-netmd-cli-darwin-arm64 bin/go-netmd-cli-darwin-amd64 -output bin/go-netmd-cli_darwin_universal
       - uses: actions/upload-artifact@v4
@@ -36,7 +39,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install toolchain
-        run: apk add --no-cache git go build-base libusb-dev
+        run: apk add --no-cache git tar build-base libusb-dev
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
       - name: Configure access to private modules
         run: |
           go env -w GOPRIVATE=dev.vaulteq.com
@@ -57,42 +63,34 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Install mingw cross toolchain
+      - name: Install mingw cross toolchain + autotools
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget unzip mingw-w64
-      - name: Download prebuilt libusb for Windows
+          sudo apt-get install -y wget mingw-w64 automake libtool pkg-config
+      - name: Build static libusb for mingw
         run: |
-          wget -q https://github.com/libusb/libusb/releases/download/v1.0.27.2/libusb-1.0.27.2-cosmos7-64bit.zip
-          unzip -q libusb-1.0.27.2-cosmos7-64bit.zip -d libusb
+          set -e
+          wget -q https://github.com/libusb/libusb/releases/download/v1.0.30/libusb-1.0.30.tar.bz2
+          tar xjf libusb-1.0.30.tar.bz2
+          cd libusb-1.0.30
+          ./bootstrap.sh --host=x86_64-w64-mingw32 --prefix="$PWD/install" --disable-shared --enable-static
+          make -j"$(nproc)"
+          make install
       - name: Configure access to private modules
         run: |
           go env -w GOPRIVATE=dev.vaulteq.com
           git config --global url."https://x-access-token:${{ secrets.DEV_VAULTEQ_TOKEN }}@dev.vaulteq.com/".insteadOf "https://dev.vaulteq.com/"
       - name: Build
         run: |
-          set -e
           mkdir -p bin
-          # locate 64-bit artifacts in the extracted zip
-          DLL=$(find libusb -path '*/x64/*' -name libusb-1.0.dll | head -1)
-          [ -z "$DLL" ] && DLL=$(find libusb -name libusb-1.0.dll | head -1)
-          DLLDIR=$(dirname "$DLL")
-          INC=$(dirname "$(find libusb -name libusb.h | head -1)")
-          IMPORT=$(find "$DLLDIR" -name 'libusb-1.0.dll.a' | head -1)
-          [ -z "$IMPORT" ] && IMPORT=$(find "$DLLDIR" -name '*.lib' | head -1)
-          [ -z "$IMPORT" ] && IMPORT=$(find libusb -name '*.lib' | head -1)
-          cp "$DLL" bin/libusb-1.0.dll
           CC=x86_64-w64-mingw32-gcc CGO_ENABLED=1 GOOS=windows GOARCH=amd64 \
-            CGO_CFLAGS="-I$INC" CGO_LDFLAGS="$IMPORT -static -static-libgcc" \
-            go build -ldflags "-s -w" -o bin/go-netmd-cli.exe .
-      - name: Package
-        run: |
-          cd bin
-          zip -q -r ../go-netmd-cli_windows_amd64.zip go-netmd-cli.exe libusb-1.0.dll
+            CGO_CFLAGS="-Ilibusb-1.0.30/install/include" \
+            CGO_LDFLAGS="-Llibusb-1.0.30/install/lib -lusb-1.0 -static -static-libgcc -lkernel32 -luser32 -lsetupapi -ladvapi32 -lntdll" \
+            go build -ldflags "-s -w" -o bin/go-netmd-cli_windows_amd64.exe .
       - uses: actions/upload-artifact@v4
         with:
           name: windows-amd64
-          path: go-netmd-cli_windows_amd64.zip
+          path: bin/go-netmd-cli_windows_amd64.exe
 
   release:
     needs: [build-macos, build-linux, build-windows]
@@ -110,4 +108,4 @@ jobs:
           files: |
             dist/darwin-universal/go-netmd-cli_darwin_universal
             dist/linux-amd64/go-netmd-cli_linux_amd64
-            dist/windows-amd64/go-netmd-cli_windows_amd64.zip
+            dist/windows-amd64/go-netmd-cli_windows_amd64.exe
